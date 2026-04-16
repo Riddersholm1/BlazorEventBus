@@ -194,10 +194,10 @@ public interface IEventBus
     IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler)
         where TEvent : class;
  
-    void Publish<TEvent>(TEvent @event)
+    void Publish<TEvent>(TEvent eventData)
         where TEvent : class;
  
-    Task PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
+    Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default)
         where TEvent : class;
 }
 ```
