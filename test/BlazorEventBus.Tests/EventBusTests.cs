@@ -30,7 +30,7 @@ public class EventBusTests
             hits.Add($"async-{e.NewValue}");
         });
 
-        await bus.PublishAsync(new CounterIncremented(7));
+        await bus.PublishAsync(new CounterIncremented(7), TestContext.Current.CancellationToken);
 
         Assert.Equal(["sync-7", "async-7"], hits);
     }
@@ -69,7 +69,7 @@ public class EventBusTests
         });
         using IDisposable s3 = bus.Subscribe<CounterIncremented>(_ => order.Add(3));
 
-        await bus.PublishAsync(new CounterIncremented(0));
+        await bus.PublishAsync(new CounterIncremented(0), TestContext.Current.CancellationToken);
 
         Assert.Equal([1, 2, 3], order);
     }
@@ -114,7 +114,7 @@ public class EventBusTests
         bus.Dispose();
 
         await Assert.ThrowsAsync<ObjectDisposedException>(
-            () => bus.PublishAsync(new CounterIncremented(1)));
+            () => bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class EventBusTests
         });
 
         var ex = await Assert.ThrowsAsync<AggregateException>(
-            () => bus.PublishAsync(new CounterIncremented(1)));
+            () => bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken));
 
         Assert.Equal(2, ex.InnerExceptions.Count);
         Assert.Contains(ex.InnerExceptions, e => e is InvalidOperationException);
@@ -269,7 +269,7 @@ public class EventBusTests
                 {
                     bus.Publish(new CounterIncremented(i));
                 }
-            }));
+            }, TestContext.Current.CancellationToken));
         }
 
         for (var s = 0; s < subscribers; s++)
@@ -280,7 +280,7 @@ public class EventBusTests
                 {
                     using IDisposable sub = bus.Subscribe<CounterIncremented>(_ => { });
                 }
-            }));
+            }, TestContext.Current.CancellationToken));
         }
 
         await Task.WhenAll(tasks);
@@ -387,8 +387,8 @@ public class EventBusTests
             self!.Dispose();
         });
 
-        await bus.PublishAsync(new CounterIncremented(1));
-        await bus.PublishAsync(new CounterIncremented(2));
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
+        await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, count);
     }
@@ -440,7 +440,7 @@ public class EventBusTests
             {
                 for (var i = 0; i < iterations; i++)
                 {
-                    await bus.PublishAsync(new CounterIncremented(i));
+                    await bus.PublishAsync(new CounterIncremented(i), TestContext.Current.CancellationToken);
                 }
             })));
 
