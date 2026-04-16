@@ -1,0 +1,98 @@
+﻿using BlazorEventBus.DependencyInjection;
+using BlazorEventBus.EventBus;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace BlazorEventBus.Tests;
+
+public class ServiceCollectionExtensionsTests
+{
+    [Fact]
+    public void AddBlazorEventBus_Registers_IEventBus_As_Scoped()
+    {
+        var services = new ServiceCollection();
+        services.AddBlazorEventBus();
+
+        ServiceDescriptor descriptor = Assert.Single(services, d => d.ServiceType == typeof(IEventBus));
+        Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBlazorEventBus_Returns_Same_Instance_Within_Scope()
+    {
+        var services = new ServiceCollection();
+        services.AddBlazorEventBus();
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        using IServiceScope scope = provider.CreateScope();
+        var a = scope.ServiceProvider.GetRequiredService<IEventBus>();
+        var b = scope.ServiceProvider.GetRequiredService<IEventBus>();
+
+        Assert.Same(a, b);
+    }
+
+    [Fact]
+    public void AddBlazorEventBus_Returns_Different_Instance_Per_Scope()
+    {
+        var services = new ServiceCollection();
+        services.AddBlazorEventBus();
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        IEventBus bus1;
+        IEventBus bus2;
+        using (IServiceScope scope1 = provider.CreateScope())
+        {
+            bus1 = scope1.ServiceProvider.GetRequiredService<IEventBus>();
+        }
+        using (IServiceScope scope2 = provider.CreateScope())
+        {
+            bus2 = scope2.ServiceProvider.GetRequiredService<IEventBus>();
+        }
+
+        Assert.NotSame(bus1, bus2);
+    }
+
+    [Fact]
+    public void IEventBus_And_EventBus_Resolve_To_Same_Instance()
+    {
+        var services = new ServiceCollection();
+        services.AddBlazorEventBus();
+        using ServiceProvider provider = services.BuildServiceProvider();
+        using IServiceScope scope = provider.CreateScope();
+
+        var viaInterface = scope.ServiceProvider.GetRequiredService<IEventBus>();
+        var viaConcrete = scope.ServiceProvider.GetRequiredService<EventBus.EventBus>();
+
+        Assert.Same(viaInterface, viaConcrete);
+    }
+
+    [Fact]
+    public void Disposing_Scope_Disposes_EventBus()
+    {
+        var services = new ServiceCollection();
+        services.AddBlazorEventBus();
+        using ServiceProvider provider = services.BuildServiceProvider();
+
+        IEventBus bus;
+        using (IServiceScope scope = provider.CreateScope())
+        {
+            bus = scope.ServiceProvider.GetRequiredService<IEventBus>();
+            // Subscription works inside the scope.
+            using IDisposable _ = bus.Subscribe<CounterIncremented>(_ => { });
+        }
+
+        // After scope disposal the bus should refuse new work.
+        Assert.Throws<ObjectDisposedException>(() =>
+            bus.Subscribe<CounterIncremented>(_ => { }));
+    }
+
+    [Fact]
+    public void AddBlazorEventBus_IsIdempotent()
+    {
+        var services = new ServiceCollection();
+        services.AddBlazorEventBus();
+        services.AddBlazorEventBus();
+
+        Assert.Single(services, d => d.ServiceType == typeof(IEventBus));
+        Assert.Single(services, d => d.ServiceType == typeof(EventBus.EventBus));
+    }
+}

@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<AnalysisLevel>latest-recommended</AnalysisLevel>
+
+		<!-- NuGet package metadata -->
+		<PackageId>BlazorEventBus</PackageId>
+		<Version>1.0.0</Version>
+		<Authors>Jesper Bruhn Riddersholm</Authors>
+		<Company>Jesper Bruhn Riddersholm</Company>
+		<Product>BlazorEventBus</Product>
+		<Title>Blazor Event Bus</Title>
+		<Description>A lightweight, circuit-scoped event aggregator for Blazor enabling loosely coupled messaging between components. Supports synchronous and asynchronous handlers, deterministic disposal, and is thread-safe under concurrent publish/subscribe.</Description>
+		<PackageTags>blazor;event-bus;event-aggregator;messaging;pub-sub;mediator;components</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageProjectUrl>https://github.com/Riddersholm97/BlazorEventBus</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Riddersholm97/BlazorEventBus</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<Copyright>Copyright (c) 2026 Jesper Bruhn Riddersholm</Copyright>
+
+		<!-- Symbols + SourceLink -->
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<DebugType>portable</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+	</ItemGroup>
+
+</Project>
