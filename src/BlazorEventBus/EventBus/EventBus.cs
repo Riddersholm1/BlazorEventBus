@@ -115,20 +115,12 @@ public sealed class EventBus : IEventBus, IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(disposing: true);
-    }
-
-    private void Dispose(bool disposing)
-    {
         if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
             return;
         }
 
-        if (disposing)
-        {
-            _subscriptions.Clear();
-        }
+        _subscriptions.Clear();
     }
 
     /// <summary>
