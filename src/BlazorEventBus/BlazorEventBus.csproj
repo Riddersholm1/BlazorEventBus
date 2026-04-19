@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -8,6 +7,8 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<AnalysisLevel>latest-recommended</AnalysisLevel>
+		<IsAotCompatible>true</IsAotCompatible>
+		<IsTrimmable>true</IsTrimmable>
 
 		<!-- NuGet package metadata -->
 		<PackageId>BlazorEventBus</PackageId>
@@ -24,8 +25,6 @@
 		<RepositoryUrl>https://github.com/Riddersholm1/BlazorEventBus</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<Copyright>Copyright (c) 2026 Jesper Bruhn Riddersholm</Copyright>
-
-		<!-- Symbols + SourceLink -->
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -35,6 +34,7 @@
 
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
+		<None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<ItemGroup>
