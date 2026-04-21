@@ -22,7 +22,7 @@ dotnet add package BlazorEventBus
  
 ```csharp
 // Program.cs
-using BlazorEventBus.DependencyInjection;
+using BlazorEventBus;
 
 builder.Services.AddBlazorEventBus();
 ```
@@ -137,13 +137,9 @@ and this display will update — with no direct reference between them.
  
 | Method          | Sync handlers | Async handlers       | Returns          |
 | --------------- | ------------- | -------------------- | ---------------- |
-| `Publish`       | Invoked       | **Skipped**          | `void`           |
 | `Publish`       | Invoked       | **Throws**           | `void`           |
 | `PublishAsync`  | Invoked       | Awaited sequentially | `Task`           |
  
-Rule of thumb: **prefer `PublishAsync`**. Use `Publish` only when you are
-certain every subscriber registered a synchronous handler and you don't need
-to await completion.
 Rule of thumb: **prefer `PublishAsync`**. `Publish` throws an
 `InvalidOperationException` if any async handler is registered for the event
 type, so it fails loudly rather than silently skipping async subscribers —
@@ -194,19 +190,15 @@ The token is checked before each handler and flowed to every async handler.
 public interface IEventBus
 {
     IDisposable Subscribe<TEvent>(Action<TEvent> handler)
-        where TEvent : class;
         where TEvent : notnull;
  
     IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler)
-        where TEvent : class;
         where TEvent : notnull;
  
     void Publish<TEvent>(TEvent eventData)
-        where TEvent : class;
         where TEvent : notnull;
  
     Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default)
-        where TEvent : class;
         where TEvent : notnull;
 }
 ```
