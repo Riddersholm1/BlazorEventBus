@@ -1,5 +1,3 @@
-@using BlazorEventBus.EventBus
-
 @implements IDisposable
 @inject IEventBus EventBus
 
@@ -26,36 +24,33 @@
     private string _themeLabel = "Default";
     private readonly List<string> _eventLog = [];
 
-    private IDisposable? _sub1;
-    private IDisposable? _sub2;
-    private IDisposable? _sub3;
-    private IDisposable? _sub4;
+    private readonly List<IDisposable> _subscriptions = [];
 
     protected override void OnInitialized()
     {
-        _sub1 = EventBus.Subscribe<MessageSent>(e =>
+        _subscriptions.Add(EventBus.Subscribe<MessageSent>(e =>
         {
             _lastMessage = e.Text;
             Log($"Message: {e.Text}");
-        });
+        }));
 
-        _sub2 = EventBus.Subscribe<CounterChanged>(e =>
+        _subscriptions.Add(EventBus.Subscribe<CounterChanged>(e =>
         {
             _counter = e.NewValue;
             Log($"Counter → {e.NewValue}");
-        });
+        }));
 
-        _sub3 = EventBus.Subscribe<ThemeChanged>(e =>
+        _subscriptions.Add(EventBus.Subscribe<ThemeChanged>(e =>
         {
             _themeClass = e.CssClass;
             _themeLabel = e.Label;
             Log($"Theme → {e.Label}");
-        });
+        }));
 
-        _sub4 = EventBus.Subscribe<NotificationPosted>(e =>
+        _subscriptions.Add(EventBus.Subscribe<NotificationPosted>(e =>
         {
             Log($"Notification ({e.Level}): {e.Message}");
-        });
+        }));
     }
 
     private void Log(string text)
@@ -66,9 +61,11 @@
 
     public void Dispose()
     {
-        _sub1?.Dispose();
-        _sub2?.Dispose();
-        _sub3?.Dispose();
-        _sub4?.Dispose();
+        foreach (IDisposable subscription in _subscriptions)
+        {
+            subscription.Dispose();
+        }
+
+        _subscriptions.Clear();
     }
 }

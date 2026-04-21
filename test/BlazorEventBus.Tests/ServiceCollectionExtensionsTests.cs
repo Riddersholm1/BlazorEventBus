@@ -1,6 +1,4 @@
-﻿using BlazorEventBus.DependencyInjection;
-using BlazorEventBus.EventBus;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace BlazorEventBus.Tests;
 
@@ -52,17 +50,15 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void IEventBus_And_EventBus_Resolve_To_Same_Instance()
+    public void AddBlazorEventBus_DoesNotExposeConcreteType()
     {
         var services = new ServiceCollection();
         services.AddBlazorEventBus();
         using ServiceProvider provider = services.BuildServiceProvider();
         using IServiceScope scope = provider.CreateScope();
 
-        var viaInterface = scope.ServiceProvider.GetRequiredService<IEventBus>();
-        var viaConcrete = scope.ServiceProvider.GetRequiredService<EventBus.EventBus>();
-
-        Assert.Same(viaInterface, viaConcrete);
+        // Consumers should only depend on the interface.
+        Assert.Null(scope.ServiceProvider.GetService<EventBus>());
     }
 
     [Fact]
@@ -93,6 +89,5 @@ public class ServiceCollectionExtensionsTests
         services.AddBlazorEventBus();
 
         Assert.Single(services, d => d.ServiceType == typeof(IEventBus));
-        Assert.Single(services, d => d.ServiceType == typeof(EventBus.EventBus));
     }
 }

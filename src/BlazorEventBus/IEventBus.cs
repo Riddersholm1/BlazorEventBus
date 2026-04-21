@@ -1,4 +1,4 @@
-﻿namespace BlazorEventBus.EventBus;
+﻿namespace BlazorEventBus;
 
 /// <summary>
 /// Event aggregator for loosely coupled messaging between Blazor components.
@@ -34,7 +34,7 @@ public interface IEventBus
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="handler"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The bus has been disposed.</exception>
-    IDisposable Subscribe<TEvent>(Action<TEvent> handler) where TEvent : class;
+    IDisposable Subscribe<TEvent>(Action<TEvent> handler) where TEvent : notnull;
 
     /// <summary>
     /// Subscribes an asynchronous handler for events of type <typeparamref name="TEvent"/>.
@@ -50,21 +50,25 @@ public interface IEventBus
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="handler"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The bus has been disposed.</exception>
-    IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : class;
+    IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : notnull;
 
     /// <summary>
-    /// Publishes an event to all <em>synchronous</em> handlers. Async handlers
-    /// registered via <see cref="Subscribe{TEvent}(Func{TEvent, CancellationToken, Task})"/>
-    /// are <b>not</b> invoked — use
-    /// <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/> instead
-    /// when any async handlers are registered.
+    /// Publishes an event to synchronous handlers only. Throws if any
+    /// asynchronous handler is registered for <typeparamref name="TEvent"/>,
+    /// so async subscribers are never silently skipped — use
+    /// <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/> when
+    /// async handlers may be registered.
     /// </summary>
     /// <typeparam name="TEvent">The event type.</typeparam>
     /// <param name="eventData">The event instance. Must not be <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="eventData"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The bus has been disposed.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// At least one asynchronous handler is registered for <typeparamref name="TEvent"/>.
+    /// Call <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/> instead.
+    /// </exception>
     /// <exception cref="AggregateException">One or more handlers threw. Each inner exception is preserved.</exception>
-    void Publish<TEvent>(TEvent eventData) where TEvent : class;
+    void Publish<TEvent>(TEvent eventData) where TEvent : notnull;
 
     /// <summary>
     /// Publishes an event to all handlers (both synchronous and asynchronous).
@@ -81,5 +85,5 @@ public interface IEventBus
     /// <exception cref="ObjectDisposedException">The bus has been disposed.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     /// <exception cref="AggregateException">One or more handlers threw. Each inner exception is preserved.</exception>
-    Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default) where TEvent : class;
+    Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default) where TEvent : notnull;
 }

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
-namespace BlazorEventBus.EventBus;
+namespace BlazorEventBus;
 
 /// <summary>
 /// Default <see cref="IEventBus"/> implementation backed by a
@@ -10,13 +10,18 @@ namespace BlazorEventBus.EventBus;
 /// the list without locking, so handlers can subscribe or unsubscribe while
 /// other handlers are running without corrupting iteration.
 /// </summary>
-public sealed class EventBus : IEventBus, IDisposable
+/// <remarks>
+/// This type is internal; consume the bus through <see cref="IEventBus"/>.
+/// It is made visible to the test assembly via <c>InternalsVisibleTo</c>
+/// for white-box testing of disposal semantics.
+/// </remarks>
+internal sealed class EventBus : IEventBus, IDisposable
 {
     private readonly ConcurrentDictionary<Type, ImmutableList<Subscription>> _subscriptions = new();
     private int _disposed;
 
     /// <inheritdoc />
-    public IDisposable Subscribe<TEvent>(Action<TEvent> handler) where TEvent : class
+    public IDisposable Subscribe<TEvent>(Action<TEvent> handler) where TEvent : notnull
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -26,7 +31,7 @@ public sealed class EventBus : IEventBus, IDisposable
     }
 
     /// <inheritdoc />
-    public IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : class
+    public IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : notnull
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -36,7 +41,7 @@ public sealed class EventBus : IEventBus, IDisposable
     }
 
     /// <inheritdoc />
-    public void Publish<TEvent>(TEvent eventData) where TEvent : class
+    public void Publish<TEvent>(TEvent eventData) where TEvent : notnull
     {
         ArgumentNullException.ThrowIfNull(eventData);
         ThrowIfDisposed();
@@ -46,20 +51,21 @@ public sealed class EventBus : IEventBus, IDisposable
             return;
         }
 
-        List<Exception>? errors = null;
-
-        // Only synchronous handlers are invoked; async handlers are skipped
-        // by design. Use PublishAsync when async handlers are registered.
-        foreach (Subscription subscription in snapshot)
+        // Fail loudly rather than silently skipping async handlers: callers
+        // who publish synchronously against an async subscriber almost
+        // certainly have a bug, not a preference.
+        if (snapshot.OfType<AsyncSubscription<TEvent>>().Any())
         {
-            if (subscription is not SyncSubscription<TEvent> sync)
-            {
-                continue;
-            }
+            throw new InvalidOperationException(
+                $"Cannot call Publish for event '{typeof(TEvent)}' because at least one asynchronous handler is registered. Use PublishAsync instead.");
+        }
 
+        List<Exception>? errors = null;
+        foreach (SyncSubscription<TEvent>? sync in snapshot.Cast<SyncSubscription<TEvent>?>())
+        {
             try
             {
-                sync.Invoke(eventData);
+                sync?.Invoke(eventData);
             }
             catch (Exception ex)
             {
@@ -74,7 +80,7 @@ public sealed class EventBus : IEventBus, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default) where TEvent : class
+    public async Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default) where TEvent : notnull
     {
         ArgumentNullException.ThrowIfNull(eventData);
         ThrowIfDisposed();
@@ -143,7 +149,7 @@ public sealed class EventBus : IEventBus, IDisposable
         // If Dispose() ran between ThrowIfDisposed and AddOrUpdate, the
         // subscription was re-added to an already-cleared dictionary.
         // Detect that and roll back.
-        if (Volatile.Read(ref _disposed) != 1)
+        if (_disposed != 1)
         {
             return;
         }
@@ -186,7 +192,7 @@ public sealed class EventBus : IEventBus, IDisposable
 
     private void ThrowIfDisposed()
     {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
+        ObjectDisposedException.ThrowIf(_disposed == 1, this);
     }
 
     /// <summary>
@@ -213,7 +219,7 @@ public sealed class EventBus : IEventBus, IDisposable
     }
 
     private sealed class SyncSubscription<TEvent>(EventBus bus, Action<TEvent> handler)
-        : Subscription(bus) where TEvent : class
+        : Subscription(bus) where TEvent : notnull
     {
         protected override Type EventType => typeof(TEvent);
 
@@ -227,7 +233,7 @@ public sealed class EventBus : IEventBus, IDisposable
     }
 
     private sealed class AsyncSubscription<TEvent>(EventBus bus, Func<TEvent, CancellationToken, Task> handler)
-        : Subscription(bus) where TEvent : class
+        : Subscription(bus) where TEvent : notnull
     {
         protected override Type EventType => typeof(TEvent);
 

@@ -1,4 +1,4 @@
-using BlazorEventBus.DependencyInjection;
+using BlazorEventBus;
 using BlazorEventBus.TestApp.Components;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
