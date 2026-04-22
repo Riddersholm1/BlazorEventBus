@@ -17,13 +17,13 @@
         <div class="card">
             <div class="card-header bg-primary text-white">Controls</div>
             <div class="card-body">
-                <button class="btn btn-primary btn-sm me-2" @onclick="Publish">
+                <button class="btn btn-primary btn-sm me-2" @onclick="PublishAsync">
                     Publish Event
                 </button>
                 <button class="btn @(_subscribed ? "btn-danger" : "btn-success") btn-sm me-2" @onclick="ToggleSubscription">
                     @(_subscribed ? "Unsubscribe" : "Subscribe")
                 </button>
-                <button class="btn btn-warning btn-sm" @onclick="PublishWithErrorHandler">
+                <button class="btn btn-warning btn-sm" @onclick="PublishWithErrorHandlerAsync">
                     Publish (with throwing handler)
                 </button>
             </div>
@@ -107,12 +107,10 @@
         else Subscribe();
     }
 
-    private void Publish()
-    {
-        EventBus.Publish(new CounterChanged(_receivedCount + 1));
-    }
+    private Task PublishAsync()
+        => EventBus.PublishAsync(new CounterChanged(_receivedCount + 1));
 
-    private void PublishWithErrorHandler()
+    private async Task PublishWithErrorHandlerAsync()
     {
         // Temporarily subscribe a throwing handler to demonstrate error behavior.
         _errorSubscription?.Dispose();
@@ -121,7 +119,7 @@
 
         try
         {
-            EventBus.Publish(new CounterChanged(_receivedCount + 1));
+            await EventBus.PublishAsync(new CounterChanged(_receivedCount + 1));
             _log.Insert(0, new LogEntry($"[{DateTime.Now:HH:mm:ss}] Publish completed normally"));
         }
         catch (AggregateException ex)

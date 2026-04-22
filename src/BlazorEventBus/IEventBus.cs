@@ -18,7 +18,10 @@
 /// <para>
 /// All members are safe to call concurrently. Handlers are invoked in the
 /// order they were subscribed; async handlers are awaited sequentially by
-/// <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/>.
+/// <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/>. Sync
+/// handlers (registered via the <see cref="Action{T}"/> overload of
+/// <see cref="Subscribe{TEvent}(Action{TEvent})"/>) execute inline on the
+/// publishing thread.
 /// </para>
 /// </remarks>
 public interface IEventBus
@@ -51,24 +54,6 @@ public interface IEventBus
     /// <exception cref="ArgumentNullException"><paramref name="handler"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The bus has been disposed.</exception>
     IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler) where TEvent : notnull;
-
-    /// <summary>
-    /// Publishes an event to synchronous handlers only. Throws if any
-    /// asynchronous handler is registered for <typeparamref name="TEvent"/>,
-    /// so async subscribers are never silently skipped — use
-    /// <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/> when
-    /// async handlers may be registered.
-    /// </summary>
-    /// <typeparam name="TEvent">The event type.</typeparam>
-    /// <param name="eventData">The event instance. Must not be <see langword="null"/>.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="eventData"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ObjectDisposedException">The bus has been disposed.</exception>
-    /// <exception cref="InvalidOperationException">
-    /// At least one asynchronous handler is registered for <typeparamref name="TEvent"/>.
-    /// Call <see cref="PublishAsync{TEvent}(TEvent, CancellationToken)"/> instead.
-    /// </exception>
-    /// <exception cref="AggregateException">One or more handlers threw. Each inner exception is preserved.</exception>
-    void Publish<TEvent>(TEvent eventData) where TEvent : notnull;
 
     /// <summary>
     /// Publishes an event to all handlers (both synchronous and asynchronous).

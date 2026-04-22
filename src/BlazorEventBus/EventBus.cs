@@ -6,9 +6,10 @@ namespace BlazorEventBus;
 /// <summary>
 /// Default <see cref="IEventBus"/> implementation backed by a
 /// <see cref="ConcurrentDictionary{TKey, TValue}"/> of
-/// <see cref="ImmutableList{T}"/> subscriptions. Publish reads a snapshot of
-/// the list without locking, so handlers can subscribe or unsubscribe while
-/// other handlers are running without corrupting iteration.
+/// <see cref="ImmutableList{T}"/> subscriptions.
+/// <see cref="PublishAsync{TEvent}"/> reads a snapshot of the list without
+/// locking, so handlers can subscribe or unsubscribe while other handlers are
+/// running without corrupting iteration.
 /// </summary>
 /// <remarks>
 /// This type is internal; consume the bus through <see cref="IEventBus"/>.
@@ -38,45 +39,6 @@ internal sealed class EventBus : IEventBus, IDisposable
         var subscription = new AsyncSubscription<TEvent>(this, handler);
         AddSubscription(typeof(TEvent), subscription);
         return subscription;
-    }
-
-    /// <inheritdoc />
-    public void Publish<TEvent>(TEvent eventData) where TEvent : notnull
-    {
-        ArgumentNullException.ThrowIfNull(eventData);
-        ThrowIfDisposed();
-
-        if (!_subscriptions.TryGetValue(typeof(TEvent), out ImmutableList<Subscription>? snapshot) || snapshot.IsEmpty)
-        {
-            return;
-        }
-
-        // Fail loudly rather than silently skipping async handlers: callers
-        // who publish synchronously against an async subscriber almost
-        // certainly have a bug, not a preference.
-        if (snapshot.OfType<AsyncSubscription<TEvent>>().Any())
-        {
-            throw new InvalidOperationException(
-                $"Cannot call Publish for event '{typeof(TEvent)}' because at least one asynchronous handler is registered. Use PublishAsync instead.");
-        }
-
-        List<Exception>? errors = null;
-        foreach (SyncSubscription<TEvent>? sync in snapshot.Cast<SyncSubscription<TEvent>?>())
-        {
-            try
-            {
-                sync?.Invoke(eventData);
-            }
-            catch (Exception ex)
-            {
-                (errors ??= []).Add(ex);
-            }
-        }
-
-        if (errors is { Count: > 0 })
-        {
-            throw new AggregateException(errors);
-        }
     }
 
     /// <inheritdoc />
@@ -222,8 +184,6 @@ internal sealed class EventBus : IEventBus, IDisposable
         : Subscription(bus) where TEvent : notnull
     {
         protected override Type EventType => typeof(TEvent);
-
-        public void Invoke(TEvent @event) => handler(@event);
 
         public override Task InvokeAsync(object @event, CancellationToken cancellationToken)
         {

@@ -29,24 +29,18 @@
     private string _message = "Hello from another component!";
     private int _counter;
 
-    private void SendMessage()
-    {
-        EventBus.Publish(new MessageSent(_message, DateTime.Now));
-    }
+    private Task SendMessage()
+        => EventBus.PublishAsync(new MessageSent(_message, DateTime.Now));
 
-    private void Increment()
+    private Task Increment()
     {
         _counter++;
-        EventBus.Publish(new CounterChanged(_counter));
+        return EventBus.PublishAsync(new CounterChanged(_counter));
     }
 
-    private void ChangeTheme(string css, string label)
-    {
-        EventBus.Publish(new ThemeChanged(css, label));
-    }
+    private Task ChangeTheme(string css, string label)
+        => EventBus.PublishAsync(new ThemeChanged(css, label));
 
-    private void SendNotification()
-    {
-        EventBus.Publish(new NotificationPosted($"Counter is at {_counter}", "success"));
-    }
+    private Task SendNotification()
+        => EventBus.PublishAsync(new NotificationPosted($"Counter is at {_counter}", "success"));
 }

@@ -1,4 +1,4 @@
-﻿namespace BlazorEventBus.Tests;
+namespace BlazorEventBus.Tests;
 
 public sealed record CounterIncremented(int NewValue);
 public sealed record UserLoggedIn(string UserId);
@@ -6,13 +6,13 @@ public sealed record UserLoggedIn(string UserId);
 public class EventBusTests
 {
     [Fact]
-    public void Subscribe_SyncHandler_ReceivesPublishedEvent()
+    public async Task Subscribe_SyncHandler_ReceivesPublishedEvent()
     {
         using var bus = new EventBus();
         CounterIncremented? received = null;
 
         using IDisposable _ = bus.Subscribe<CounterIncremented>(e => received = e);
-        bus.Publish(new CounterIncremented(42));
+        await bus.PublishAsync(new CounterIncremented(42), TestContext.Current.CancellationToken);
 
         Assert.Equal(new CounterIncremented(42), received);
     }
@@ -36,34 +36,13 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Publish_WithAsyncHandlersRegistered_Throws()
-    {
-        using var bus = new EventBus();
-        var syncCalled = false;
-        var asyncCalled = false;
-
-        using IDisposable s1 = bus.Subscribe<CounterIncremented>(_ => syncCalled = true);
-        using IDisposable s2 = bus.Subscribe<CounterIncremented>((_, _) =>
-        {
-            asyncCalled = true;
-            return Task.CompletedTask;
-        });
-
-        var ex = Assert.Throws<InvalidOperationException>(() => bus.Publish(new CounterIncremented(1)));
-
-        Assert.Contains(nameof(IEventBus.PublishAsync), ex.Message);
-        Assert.False(syncCalled, "Publish must fail fast before invoking any handler.");
-        Assert.False(asyncCalled);
-    }
-
-    [Fact]
-    public void Publish_WithOnlySyncHandlers_InvokesThem()
+    public async Task PublishAsync_WithOnlySyncHandlers_InvokesThem()
     {
         using var bus = new EventBus();
         var hits = 0;
 
         using IDisposable _ = bus.Subscribe<CounterIncremented>(_ => hits++);
-        bus.Publish(new CounterIncremented(1));
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, hits);
     }
@@ -88,15 +67,15 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Dispose_Subscription_StopsReceivingEvents()
+    public async Task Dispose_Subscription_StopsReceivingEvents()
     {
         using var bus = new EventBus();
         var count = 0;
 
         IDisposable subscription = bus.Subscribe<CounterIncremented>(_ => count++);
-        bus.Publish(new CounterIncremented(1));
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
         subscription.Dispose();
-        bus.Publish(new CounterIncremented(2));
+        await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, count);
     }
@@ -109,15 +88,6 @@ public class EventBusTests
 
         Assert.Throws<ObjectDisposedException>(() =>
             bus.Subscribe<CounterIncremented>(_ => { }));
-    }
-
-    [Fact]
-    public void Dispose_Bus_SubsequentPublishThrows()
-    {
-        var bus = new EventBus();
-        bus.Dispose();
-
-        Assert.Throws<ObjectDisposedException>(() => bus.Publish(new CounterIncremented(1)));
     }
 
     [Fact]
@@ -153,24 +123,26 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Publish_NullEvent_Throws()
+    public async Task PublishAsync_NullEvent_Throws()
     {
         using var bus = new EventBus();
-        Assert.Throws<ArgumentNullException>(() => bus.Publish<CounterIncremented>(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => bus.PublishAsync<CounterIncremented>(null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public void Publish_NoSubscribers_DoesNothing()
+    public async Task PublishAsync_NoSubscribers_DoesNothing()
     {
         using var bus = new EventBus();
 
-        Exception? exception = Record.Exception(() => bus.Publish(new CounterIncremented(1)));
+        Exception? exception = await Record.ExceptionAsync(
+            () => bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken));
 
         Assert.Null(exception);
     }
 
     [Fact]
-    public void Publish_HandlerThrows_AggregatesAllExceptionsAndRunsAllHandlers()
+    public async Task PublishAsync_SyncHandlerThrows_AggregatesAllExceptionsAndRunsAllHandlers()
     {
         using var bus = new EventBus();
         var later = false;
@@ -179,7 +151,8 @@ public class EventBusTests
         using IDisposable s2 = bus.Subscribe<CounterIncremented>(_ => throw new ArgumentException("b"));
         using IDisposable s3 = bus.Subscribe<CounterIncremented>(_ => later = true);
 
-        var ex = Assert.Throws<AggregateException>(() => bus.Publish(new CounterIncremented(1)));
+        var ex = await Assert.ThrowsAsync<AggregateException>(
+            () => bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken));
 
         Assert.Equal(2, ex.InnerExceptions.Count);
         Assert.Contains(ex.InnerExceptions, e => e is InvalidOperationException);
@@ -188,7 +161,7 @@ public class EventBusTests
     }
 
     [Fact]
-    public async Task PublishAsync_HandlerThrows_AggregatesAllExceptions()
+    public async Task PublishAsync_MixedHandlersThrow_AggregatesAllExceptions()
     {
         using var bus = new EventBus();
 
@@ -241,7 +214,7 @@ public class EventBusTests
     }
 
     [Fact]
-    public void DifferentEventTypes_Are_Independent()
+    public async Task DifferentEventTypes_Are_Independent()
     {
         using var bus = new EventBus();
         var counterHits = 0;
@@ -250,16 +223,16 @@ public class EventBusTests
         using IDisposable s1 = bus.Subscribe<CounterIncremented>(_ => counterHits++);
         using IDisposable s2 = bus.Subscribe<UserLoggedIn>(_ => loginHits++);
 
-        bus.Publish(new CounterIncremented(1));
-        bus.Publish(new UserLoggedIn("u"));
-        bus.Publish(new CounterIncremented(2));
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
+        await bus.PublishAsync(new UserLoggedIn("u"), TestContext.Current.CancellationToken);
+        await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, counterHits);
         Assert.Equal(1, loginHits);
     }
 
     [Fact]
-    public async Task Concurrent_SubscribeAndPublish_DoesNotCrashOrLoseSubscribers()
+    public async Task Concurrent_SubscribeAndPublishAsync_DoesNotCrashOrLoseSubscribers()
     {
         using var bus = new EventBus();
         var hits = 0;
@@ -276,11 +249,11 @@ public class EventBusTests
         var tasks = new List<Task>(publishers + subscribers);
         for (var p = 0; p < publishers; p++)
         {
-            tasks.Add(Task.Run(() =>
+            tasks.Add(Task.Run(async () =>
             {
                 for (var i = 0; i < iterations; i++)
                 {
-                    bus.Publish(new CounterIncremented(i));
+                    await bus.PublishAsync(new CounterIncremented(i), TestContext.Current.CancellationToken);
                 }
             }, TestContext.Current.CancellationToken));
         }
@@ -302,7 +275,7 @@ public class EventBusTests
     }
 
     [Fact]
-    public void MultipleSubscriptions_To_Same_Event_All_Fire()
+    public async Task MultipleSubscriptions_To_Same_Event_All_Fire()
     {
         using var bus = new EventBus();
         var a = 0;
@@ -311,15 +284,15 @@ public class EventBusTests
         using IDisposable s1 = bus.Subscribe<CounterIncremented>(_ => a++);
         using IDisposable s2 = bus.Subscribe<CounterIncremented>(_ => b++);
 
-        bus.Publish(new CounterIncremented(1));
-        bus.Publish(new CounterIncremented(2));
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
+        await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(2, a);
         Assert.Equal(2, b);
     }
 
     [Fact]
-    public void Unsubscribing_One_Leaves_Others_Active()
+    public async Task Unsubscribing_One_Leaves_Others_Active()
     {
         using var bus = new EventBus();
         var a = 0;
@@ -328,16 +301,16 @@ public class EventBusTests
         IDisposable s1 = bus.Subscribe<CounterIncremented>(_ => a++);
         using IDisposable s2 = bus.Subscribe<CounterIncremented>(_ => b++);
 
-        bus.Publish(new CounterIncremented(1));
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
         s1.Dispose();
-        bus.Publish(new CounterIncremented(2));
+        await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken);
 
         Assert.Equal(1, a);
         Assert.Equal(2, b);
     }
 
     [Fact]
-    public void Handler_Can_Unsubscribe_Itself_During_Publish()
+    public async Task SyncHandler_Can_Unsubscribe_Itself_During_Publish()
     {
         using var bus = new EventBus();
         var count = 0;
@@ -349,14 +322,14 @@ public class EventBusTests
             self!.Dispose();
         });
 
-        bus.Publish(new CounterIncremented(1));
-        bus.Publish(new CounterIncremented(2)); // should not fire
+        await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
+        await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken); // should not fire
 
         Assert.Equal(1, count);
     }
 
     [Fact]
-    public void Handler_Can_Subscribe_New_Handler_During_Publish()
+    public async Task Handler_Can_Subscribe_New_Handler_During_Publish()
     {
         using var bus = new EventBus();
         var hits = new List<string>();
@@ -370,12 +343,12 @@ public class EventBusTests
 
         try
         {
-            bus.Publish(new CounterIncremented(1));
+            await bus.PublishAsync(new CounterIncremented(1), TestContext.Current.CancellationToken);
             // Snapshot isolation: inner handler was added mid-publish, should not fire yet.
             Assert.Equal(["outer"], hits);
 
             hits.Clear();
-            bus.Publish(new CounterIncremented(2));
+            await bus.PublishAsync(new CounterIncremented(2), TestContext.Current.CancellationToken);
             Assert.Contains("outer", hits);
             Assert.Contains("inner", hits);
         }
@@ -387,7 +360,7 @@ public class EventBusTests
     }
 
     [Fact]
-    public async Task PublishAsync_Handler_Can_Unsubscribe_Itself()
+    public async Task PublishAsync_AsyncHandler_Can_Unsubscribe_Itself()
     {
         using var bus = new EventBus();
         var count = 0;
