@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/Riddersholm1/BlazorEventBus/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Riddersholm1/BlazorEventBus/actions)
 [![Coverage](https://codecov.io/gh/Riddersholm1/BlazorEventBus/branch/main/graph/badge.svg)](https://codecov.io/gh/Riddersholm1/BlazorEventBus)
-[![Latest Release](https://img.shields.io/github/v/tag/Riddersholm1/BlazorEventBus?include_prereleases)](https://github.com/Riddersholm1/BlazorEventBus/tags)
+[![Latest Release](https://img.shields.io/github/v/release/Riddersholm1/BlazorEventBus?include_prereleases)](https://github.com/Riddersholm1/BlazorEventBus/releases)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/BlazorEventBus)](https://www.nuget.org/packages/BlazorEventBus)
 [![Stars](https://img.shields.io/github/stars/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/stargazers)
 [![Contributors](https://img.shields.io/github/contributors/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/graphs/contributors)
