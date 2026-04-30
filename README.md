@@ -1,6 +1,16 @@
 # BlazorEventBus
 
-A lightweight, **circuit-scoped** event aggregator for Blazor. Enables loosely
+[![Build](https://github.com/Riddersholm1/BlazorEventBus/actions/workflows/dotnet.yml/badge.svg)](https://github.com/Riddersholm1/BlazorEventBus/actions)
+[![Latest Release](https://img.shields.io/github/v/release/Riddersholm1/BlazorEventBus?include_prereleases)](https://github.com/Riddersholm1/BlazorEventBus/releases)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/BlazorEventBus)](https://www.nuget.org/packages/BlazorEventBus)
+[![Stars](https://img.shields.io/github/stars/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/stargazers)
+[![Contributors](https://img.shields.io/github/contributors/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/commits/main)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/graphs/commit-activity)
+[![Issues](https://img.shields.io/github/issues/Riddersholm1/BlazorEventBus)](https://github.com/Riddersholm1/BlazorEventBus/issues)
+[![Release Strategy](https://img.shields.io/badge/release%20strategy-githubflow-orange)](https://githubflow.github.io)
+
+A lightweight, **circuit-scoped** event aggregator for Blazor.
 coupled messaging between components without them having to know about each
 other.
 
@@ -176,29 +186,6 @@ await EventBus.PublishAsync(new UserLoggedIn(id, DateTimeOffset.UtcNow), ct);
 ```
 
 The token is checked before each handler and flowed to every async handler.
-
-## API at a glance
-
-```csharp
-public interface IEventBus
-{
-    IDisposable Subscribe<TEvent>(Action<TEvent> handler)
-        where TEvent : notnull;
-
-    IDisposable Subscribe<TEvent>(Func<TEvent, CancellationToken, Task> handler)
-        where TEvent : notnull;
-
-    Task PublishAsync<TEvent>(TEvent eventData, CancellationToken cancellationToken = default)
-        where TEvent : notnull;
-}
-```
-
-```csharp
-public static class BlazorEventBusServiceCollectionExtensions
-{
-    public static IServiceCollection AddBlazorEventBus(this IServiceCollection services);
-}
-```
 
 ## Migrating from 1.x
 
