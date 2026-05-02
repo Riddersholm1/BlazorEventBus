@@ -28,6 +28,14 @@ jobs:
         with:
           fetch-depth: 0 # full history for SourceLink / versioning
 
+      - name: Resolve version
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+          if [ -z "$VERSION" ]; then VERSION="0.0.0-dev"; fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5.2.0
         with:
@@ -38,7 +46,7 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --no-restore -c ${{ env.CONFIGURATION }} -warnaserror
+        run: dotnet build --no-restore -c ${{ env.CONFIGURATION }} -warnaserror /p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Test
         run: dotnet test --no-build -c ${{ env.CONFIGURATION }} --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
@@ -59,7 +67,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Pack
-        run: dotnet pack src/BlazorEventBus/BlazorEventBus.csproj --no-build -c ${{ env.CONFIGURATION }} -o ./artifacts
+        run: dotnet pack src/BlazorEventBus/BlazorEventBus.csproj --no-build -c ${{ env.CONFIGURATION }} -o ./artifacts /p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Upload NuGet package
         uses: actions/upload-artifact@v7.0.1
